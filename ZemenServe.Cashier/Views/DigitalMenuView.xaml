@@ -1,0 +1,290 @@
+<UserControl x:Class="ZemenServe.Cashier.Views.DigitalMenuView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <StackPanel>
+                <TextBlock Text="Standalone Digital Menu &amp; Recipe Builder" Foreground="{StaticResource TextPrimaryBrush}" FontSize="22" FontWeight="Bold"/>
+                <TextBlock Text="Manage food items, categories, build ingredient recipes, and calculate live COGS &amp; profits" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="📁 Manage Categories" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,10,0" Height="40" Padding="14,0"
+                        Command="{Binding OpenCategoryManagerCommand}"/>
+                <Button Content="➕ REGISTER NEW DISH &amp; RECIPE" Style="{StaticResource SuccessButtonStyle}" Height="40" Padding="16,0"
+                        Command="{Binding OpenAddFormCommand}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Search & Filter Bar -->
+        <Border Grid.Row="1" Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="12" Margin="0,0,0,15">
+            <Grid>
+                <TextBox Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" 
+                         Background="#1E1E2E" Foreground="White" BorderBrush="{StaticResource BorderColorBrush}" 
+                         Padding="10" FontSize="14"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="2">
+            <!-- Normal Catalog Grid View -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding MenuCatalog}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="3"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="10" Margin="8" Padding="15">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Stretch">
+                                        <Border Background="#1E1E2E" CornerRadius="4" Padding="6,2">
+                                            <TextBlock Text="{Binding Category}" Foreground="{StaticResource PrimaryBrush}" FontSize="11" FontWeight="Bold"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="1" Text="{Binding Name}" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,8,0,4"/>
+                                    <TextBlock Grid.Row="2" Text="{Binding Price, StringFormat='{}{0:N2} ETB'}" Foreground="{StaticResource AccentGreenBrush}" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+
+                                    <!-- Recipe Ingredients Summary -->
+                                    <StackPanel Grid.Row="3" Margin="0,0,0,12">
+                                        <TextBlock Text="Recipe Ingredients:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                        <ItemsControl ItemsSource="{Binding Recipes}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Foreground="#CCCCCC" FontSize="11" Margin="0,1">
+                                                        <Run Text="• "/><Run Text="{Binding Ingredient.Name}"/><Run Text=" ("/><Run Text="{Binding QuantityRequired}"/><Run Text=" "/><Run Text="{Binding Ingredient.Unit}"/><Run Text=")"/>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <!-- Action Buttons -->
+                                    <Grid Grid.Row="4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0" Content="Edit" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,4,0" Height="32" FontSize="12"
+                                                Command="{Binding DataContext.EditMenuItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Grid.Column="1" Content="Delete" Style="{StaticResource DangerButtonStyle}" Margin="4,0,0,0" Height="32" FontSize="12"
+                                                Command="{Binding DataContext.DeleteMenuItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Overlay Panel for Adding/Editing Food Item & Recipe Builder -->
+            <Border Background="#1A1A28" CornerRadius="12" Padding="20" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="2"
+                    Visibility="{Binding IsAddingNewItem, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,15">
+                        <TextBlock Text="Food Item &amp; Recipe Builder" Foreground="White" FontSize="20" FontWeight="Bold"/>
+                        <Button Content="✕ Close" Style="{StaticResource DangerButtonStyle}" HorizontalAlignment="Right" Height="32" Padding="12,0"
+                                Command="{Binding CancelAddFormCommand}"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="380"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Dish Info & Ingredient Selector -->
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,15,0">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="Food Dish Name:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,4"/>
+                                        <TextBox Text="{Binding NewDishName, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Background="#1E1E2E" Foreground="White" BorderBrush="{StaticResource BorderColorBrush}" Padding="8"/>
+                                    </StackPanel>
+
+                                    <!-- Category ComboBox Dropdown -->
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Category Dropdown:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,4"/>
+                                        <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" DisplayMemberPath="Name"
+                                                  Background="#1E1E2E" Foreground="Black" Padding="6" Height="36"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Add Ingredient Section -->
+                                <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="10" Padding="15" Margin="0,0,0,15">
+                                    <StackPanel>
+                                        <TextBlock Text="Add Ingredient to Dish Recipe:" Foreground="White" FontSize="15" FontWeight="Bold" Margin="0,0,0,10"/>
+
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock Text="Select Ingredient:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                                <ComboBox ItemsSource="{Binding AvailableIngredients}" SelectedItem="{Binding SelectedIngredientToAdd}"
+                                                          DisplayMemberPath="Name" Background="#1E1E2E" Foreground="Black" Padding="6" Height="36"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                                <TextBlock Text="Qty Required:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                                <TextBox Text="{Binding NewQuantityRequired, UpdateSourceTrigger=PropertyChanged}" 
+                                                         Background="#1E1E2E" Foreground="White" BorderBrush="{StaticResource BorderColorBrush}" Padding="6" Height="36"/>
+                                            </StackPanel>
+
+                                            <Button Grid.Column="2" Content="+ Add Line" Style="{StaticResource SuccessButtonStyle}" Height="36" VerticalAlignment="Bottom"
+                                                    Command="{Binding AddRecipeLineCommand}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Recipe Lines Table -->
+                                <TextBlock Text="Recipe Ingredients &amp; Line Costs:" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,0,0,6"/>
+                                <DataGrid ItemsSource="{Binding RecipeItems}" AutoGenerateColumns="False" IsReadOnly="True" MinHeight="160"
+                                          Background="{StaticResource CardBackgroundBrush}" Foreground="White" RowBackground="#252538" AlternatingRowBackground="#2D2D44"
+                                          GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource BorderColorBrush}" HeadersVisibility="Column" BorderThickness="0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Ingredient" Binding="{Binding Ingredient.Name}" Width="*"/>
+                                        <DataGridTextColumn Header="Qty Required" Binding="{Binding QuantityRequired, StringFormat='{}{0:F2}'}" Width="100"/>
+                                        <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="70"/>
+                                        <DataGridTextColumn Header="Unit Cost (ETB)" Binding="{Binding UnitCost, StringFormat='{}{0:N2}'}" Width="110"/>
+                                        <DataGridTextColumn Header="Line Total (ETB)" Binding="{Binding LineCost, StringFormat='{}{0:N2}'}" Width="120"/>
+                                        <DataGridTemplateColumn Width="60">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="✕" Style="{StaticResource DangerButtonStyle}" Padding="6,2" FontSize="11"
+                                                            Command="{Binding DataContext.RemoveRecipeLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Right Column: Live Cost & Margin Calculator -->
+                        <Border Grid.Column="1" Background="{StaticResource CardBackgroundBrush}" CornerRadius="10" Padding="18">
+                            <StackPanel>
+                                <TextBlock Text="Live Cost &amp; Profit Calculator" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+
+                                <!-- Calculated COGS -->
+                                <Border Background="#12121D" CornerRadius="8" Padding="12" Margin="0,0,0,15">
+                                    <StackPanel>
+                                        <TextBlock Text="Calculated Recipe COGS (Raw Cost):" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                                        <TextBlock Text="{Binding TotalCalculatedCogs, StringFormat='{}{0:N2} ETB'}" 
+                                                   Foreground="{StaticResource AccentOrangeBrush}" FontSize="24" FontWeight="Bold" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Target Selling Price Input -->
+                                <TextBlock Text="Target Selling Price (ETB):" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding NewSellingPrice, UpdateSourceTrigger=PropertyChanged}" 
+                                         Background="#1E1E2E" Foreground="{StaticResource AccentGreenBrush}" 
+                                         BorderBrush="{StaticResource AccentGreenBrush}" BorderThickness="2" 
+                                         FontSize="20" FontWeight="Bold" Padding="10" Margin="0,0,0,15"/>
+
+                                <!-- Estimated Gross Profit -->
+                                <Border Background="#12121D" CornerRadius="8" Padding="12" Margin="0,0,0,20">
+                                    <StackPanel>
+                                        <TextBlock Text="Estimated Gross Profit / Dish:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"/>
+                                        <TextBlock Text="{Binding EstimatedProfit, StringFormat='{}{0:N2} ETB'}" 
+                                                   Foreground="{StaticResource PrimaryBrush}" FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding ProfitMarginPercentage, StringFormat='{}Margin: {0:F1}%'}" 
+                                                   Foreground="{StaticResource AccentGreenBrush}" FontSize="13" FontWeight="Bold" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Save Button -->
+                                <Button Content="💾 SAVE FOOD ITEM &amp; RECIPE" Style="{StaticResource SuccessButtonStyle}" Height="48" FontSize="16"
+                                        Command="{Binding SaveFoodItemCommand}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Overlay Dialog: Manage Categories -->
+            <Border Background="#1A1A28" CornerRadius="12" Padding="20" BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="2"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Width="480"
+                    Visibility="{Binding IsManagingCategories, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,15">
+                        <TextBlock Text="Manage Food Categories" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                        <Button Content="✕" Style="{StaticResource DangerButtonStyle}" HorizontalAlignment="Right" Width="30" Height="30" Padding="0"
+                                Command="{Binding CloseCategoryManagerCommand}"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}" 
+                                 Background="#1E1E2E" Foreground="White" BorderBrush="{StaticResource BorderColorBrush}" Padding="8" Height="36"/>
+                        <Button Grid.Column="1" Content="+ Add Category" Style="{StaticResource SuccessButtonStyle}" Margin="8,0,0,0" Height="36" Padding="12,0"
+                                Command="{Binding AddCategoryCommand}"/>
+                    </Grid>
+
+                    <TextBlock Text="Active Categories:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,6"/>
+                    <DataGrid ItemsSource="{Binding Categories}" AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="220"
+                              Background="{StaticResource CardBackgroundBrush}" Foreground="White" RowBackground="#252538" AlternatingRowBackground="#2D2D44"
+                              GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource BorderColorBrush}" HeadersVisibility="Column" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                            <DataGridTextColumn Header="Category Name" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTemplateColumn Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Delete" Style="{StaticResource DangerButtonStyle}" Padding="6,2" FontSize="11"
+                                                Command="{Binding DataContext.DeleteCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

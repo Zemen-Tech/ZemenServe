@@ -1,0 +1,119 @@
+<Window x:Class="ZemenServe.Kitchen.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ZemenServe — Real-Time Kitchen Display System (Zemen Tech)" 
+        Height="780" Width="1240"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundDarkBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Status & Network Settings Bar -->
+        <Border Grid.Row="0" Background="{StaticResource CardBackgroundBrush}" Padding="15" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="KITCHEN ORDER QUEUE" Foreground="White" FontSize="20" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <Ellipse Width="10" Height="10" Fill="{StaticResource AccentGreenBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ConnectionStatus}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Host IP Settings Form -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Cashier PC IP:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Text="{Binding CashierIp, UpdateSourceTrigger=PropertyChanged}" Width="130" Height="34" 
+                             Background="#12121D" Foreground="White" BorderBrush="{StaticResource BorderColorBrush}" Padding="6" VerticalContentAlignment="Center"/>
+
+                    <TextBlock Text="Port:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center" Margin="12,0,8,0"/>
+                    <TextBox Text="{Binding CashierPort, UpdateSourceTrigger=PropertyChanged}" Width="65" Height="34" 
+                             Background="#12121D" Foreground="White" BorderBrush="{StaticResource BorderColorBrush}" Padding="6" VerticalContentAlignment="Center"/>
+
+                    <Button Content="Connect" Style="{StaticResource PrimaryButtonStyle}" Margin="12,0,0,0" Height="34" Padding="14,0"
+                            Command="{Binding SaveSettingsAndConnectCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Live Orders Cards Grid -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="10">
+            <ItemsControl ItemsSource="{Binding ActiveOrders}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="3"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="12" Margin="8" Padding="16"
+                                BorderBrush="{StaticResource BorderColorBrush}" BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Header: Order ID & Status Badge -->
+                                <Grid Grid.Row="0" Margin="0,0,0,10">
+                                    <TextBlock Text="{Binding Id, StringFormat='Order #{0}'}" Foreground="White" FontSize="20" FontWeight="Bold"/>
+                                    <Border HorizontalAlignment="Right" CornerRadius="4" Padding="8,4" Background="#35354E">
+                                        <TextBlock Text="{Binding Status}" Foreground="{StaticResource AccentOrangeBrush}" FontSize="13" FontWeight="Bold"/>
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock Grid.Row="1" Text="{Binding CreatedAt, StringFormat='Received: {0:HH:mm:ss}'}" 
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,10"/>
+
+                                <!-- Items List -->
+                                <Border Grid.Row="2" Background="#12121D" CornerRadius="8" Padding="10" Margin="0,0,0,10" MinHeight="100">
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,3">
+                                                    <TextBlock Text="{Binding MenuItemName}" Foreground="White" FontSize="15" FontWeight="Bold"/>
+                                                    <TextBlock Text="{Binding Quantity, StringFormat='x{0}'}" Foreground="{StaticResource AccentGreenBrush}" 
+                                                               FontSize="15" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+
+                                <!-- Note -->
+                                <TextBlock Grid.Row="3" Text="{Binding CashierNote, StringFormat='Note: {0}'}" 
+                                           Foreground="{StaticResource AccentOrangeBrush}" FontSize="12" FontStyle="Italic" Margin="0,0,0,12" TextWrapping="Wrap"/>
+
+                                <!-- Action Buttons Stack -->
+                                <StackPanel Grid.Row="4">
+                                    <Button Content="▶ START PREPARING" Style="{StaticResource WarningButtonStyle}" Height="40" Margin="0,0,0,6"
+                                            Command="{Binding DataContext.StartPreparingCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+
+                                    <Button Content="✓ MARK READY FOR PICKUP" Style="{StaticResource SuccessButtonStyle}" Height="42" Margin="0,0,0,6"
+                                            Command="{Binding DataContext.MarkReadyCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+
+                                    <Button Content="🍽 SERVE &amp; CLEAR ORDER" Style="{StaticResource PrimaryButtonStyle}" Height="38"
+                                            Command="{Binding DataContext.ServeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</Window>
