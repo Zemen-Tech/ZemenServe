@@ -12,9 +12,18 @@ public static class SeedDataService
     public static async Task SeedAsync(ZemenServeDbContext context)
     {
         // Ensure database exists and SQLite WAL mode is enabled
-        await context.Database.EnsureCreatedAsync();
-        await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
-        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+        try
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+        catch (Exception ex)
+        {
+            // Ignore existing table schema creation errors if the SQLite file already exists
+            System.Diagnostics.Debug.WriteLine($"EnsureCreated Note: {ex.Message}");
+        }
+
+        try { await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;"); } catch { }
+        try { await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;"); } catch { }
 
         // Ensure categories table exists even if database was created prior to Category entity addition
         await context.Database.ExecuteSqlRawAsync(@"
