@@ -20,6 +20,9 @@ public class OrderDto
     public OrderStatus Status { get; set; }
     public decimal TotalAmount { get; set; }
     public string? CashierNote { get; set; }
+    public int? WaiterId { get; set; }
+    public string? WaiterName { get; set; }
+    public bool IsPaid { get; set; }
     public List<OrderItemDto> Items { get; set; } = new();
 }
 
@@ -51,6 +54,22 @@ public class DailyReportItemBreakdownDto
     public decimal GrossProfit => TotalRevenue - EstimatedCogs;
 }
 
+public class WaiterSalesReportDto
+{
+    public int WaiterId { get; set; }
+    public string WaiterName { get; set; } = string.Empty;
+    public int TotalOrders { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public int Rank { get; set; }
+    public string Badge => Rank switch
+    {
+        1 => "🥇 1st Place",
+        2 => "🥈 2nd Place",
+        3 => "🥉 3rd Place",
+        _ => $"#{Rank}"
+    };
+}
+
 public class DailyReportDto
 {
     public DateTime ReportDate { get; set; }
@@ -59,6 +78,7 @@ public class DailyReportDto
     public decimal TotalCogs { get; set; }
     public decimal NetProfit => TotalRevenue - TotalCogs;
     public List<DailyReportItemBreakdownDto> ItemsSold { get; set; } = new();
+    public List<WaiterSalesReportDto> WaiterSales { get; set; } = new();
 }
 
 public interface IOrderHubClient

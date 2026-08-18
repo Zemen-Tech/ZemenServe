@@ -39,6 +39,8 @@
                                  Command="{Binding NavigateCommand}" CommandParameter="Inventory"/>
                     <RadioButton Content="📊 Daily Reports" Style="{StaticResource NavButtonStyle}"
                                  Command="{Binding NavigateCommand}" CommandParameter="Reports"/>
+                    <RadioButton Content="👤 Waiters" Style="{StaticResource NavButtonStyle}"
+                                 Command="{Binding NavigateCommand}" CommandParameter="Settings"/>
                 </StackPanel>
 
                 <!-- Server Host Indicator Footer -->
@@ -68,6 +70,9 @@
                 </DataTemplate>
                 <DataTemplate DataType="{x:Type viewmodels:ReportsViewModel}">
                     <views:ReportsView/>
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type viewmodels:SettingsViewModel}">
+                    <views:SettingsView/>
                 </DataTemplate>
             </ContentControl.Resources>
         </ContentControl>

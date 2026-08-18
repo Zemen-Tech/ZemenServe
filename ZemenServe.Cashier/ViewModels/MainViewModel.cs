@@ -13,17 +13,20 @@ public partial class MainViewModel : ObservableObject
     public DigitalMenuViewModel DigitalMenuVM { get; }
     public InventoryViewModel InventoryVM { get; }
     public ReportsViewModel ReportsVM { get; }
+    public SettingsViewModel SettingsVM { get; }
 
     public MainViewModel(
         OrderEntryViewModel orderEntryVM,
         DigitalMenuViewModel digitalMenuVM,
         InventoryViewModel inventoryVM,
-        ReportsViewModel reportsVM)
+        ReportsViewModel reportsVM,
+        SettingsViewModel settingsVM)
     {
         OrderEntryVM = orderEntryVM;
         DigitalMenuVM = digitalMenuVM;
         InventoryVM = inventoryVM;
         ReportsVM = reportsVM;
+        SettingsVM = settingsVM;
 
         _currentView = orderEntryVM;
 
@@ -39,6 +42,7 @@ public partial class MainViewModel : ObservableObject
             "DigitalMenu" => DigitalMenuVM,
             "Inventory" => InventoryVM,
             "Reports" => ReportsVM,
+            "Settings" => SettingsVM,
             _ => OrderEntryVM
         };
     }

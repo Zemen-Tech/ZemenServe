@@ -20,7 +20,7 @@ public class InventoryService
     }
 
     public async Task<(OrderDto OrderDto, List<string> LowStockAlerts)> SubmitOrderAsync(
-        List<OrderItemDto> cartItems, string? cashierNote)
+        List<OrderItemDto> cartItems, string? cashierNote, int? waiterId = null, string? waiterName = null, int? activeOrderIdToAppend = null)
     {
         using var context = _dbContextFactory();
         using var transaction = await context.Database.BeginTransactionAsync();
@@ -28,20 +28,46 @@ public class InventoryService
         try
         {
             var lowStockAlerts = new List<string>();
-            decimal totalAmount = cartItems.Sum(item => item.TotalPrice);
+            decimal addedAmount = cartItems.Sum(item => item.TotalPrice);
 
-            var order = new Order
+            Order order;
+            bool isAppendMode = activeOrderIdToAppend.HasValue && activeOrderIdToAppend.Value > 0;
+
+            if (isAppendMode)
             {
-                CreatedAt = DateTime.Now,
-                Status = OrderStatus.Pending,
-                TotalAmount = totalAmount,
-                CashierNote = cashierNote
-            };
+                order = await context.Orders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.Id == activeOrderIdToAppend!.Value)
+                    ?? throw new InvalidOperationException($"Active order #{activeOrderIdToAppend} not found.");
 
-            context.Orders.Add(order);
-            await context.SaveChangesAsync();
-
-            var orderItemEntities = new List<OrderItem>();
+                order.TotalAmount += addedAmount;
+                if (!string.IsNullOrWhiteSpace(cashierNote))
+                {
+                    order.CashierNote = string.IsNullOrWhiteSpace(order.CashierNote) 
+                        ? cashierNote 
+                        : $"{order.CashierNote} | {cashierNote}";
+                }
+                if (!string.IsNullOrWhiteSpace(waiterName))
+                {
+                    order.WaiterId = waiterId;
+                    order.WaiterName = waiterName;
+                }
+            }
+            else
+            {
+                order = new Order
+                {
+                    CreatedAt = DateTime.Now,
+                    Status = OrderStatus.Pending,
+                    TotalAmount = addedAmount,
+                    CashierNote = cashierNote,
+                    WaiterId = waiterId,
+                    WaiterName = waiterName,
+                    IsPaid = false
+                };
+                context.Orders.Add(order);
+                await context.SaveChangesAsync();
+            }
 
             foreach (var cartItem in cartItems)
             {
@@ -53,7 +79,6 @@ public class InventoryService
                     UnitPriceAtSale = cartItem.UnitPrice
                 };
                 context.OrderItems.Add(orderItem);
-                orderItemEntities.Add(orderItem);
 
                 // Fetch recipe for this menu item
                 var recipes = await context.Recipes
@@ -92,6 +117,18 @@ public class InventoryService
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
 
+            // Load full items for DTO
+            var allItems = await context.OrderItems
+                .Include(oi => oi.MenuItem)
+                .Where(oi => oi.OrderId == order.Id)
+                .Select(oi => new OrderItemDto
+                {
+                    MenuItemId = oi.MenuItemId,
+                    MenuItemName = oi.MenuItem != null ? oi.MenuItem.Name : "Item",
+                    Quantity = oi.Quantity,
+                    UnitPrice = oi.UnitPriceAtSale
+                }).ToListAsync();
+
             var orderDto = new OrderDto
             {
                 Id = order.Id,
@@ -99,7 +136,10 @@ public class InventoryService
                 Status = order.Status,
                 TotalAmount = order.TotalAmount,
                 CashierNote = order.CashierNote,
-                Items = cartItems
+                WaiterId = order.WaiterId,
+                WaiterName = order.WaiterName,
+                IsPaid = order.IsPaid,
+                Items = allItems
             };
 
             return (orderDto, lowStockAlerts);
@@ -118,6 +158,10 @@ public class InventoryService
         if (order != null)
         {
             order.Status = newStatus;
+            if (newStatus == OrderStatus.Paid)
+            {
+                order.IsPaid = true;
+            }
             await context.SaveChangesAsync();
         }
     }
@@ -239,6 +283,180 @@ public class InventoryService
             Reason = l.Reason,
             Timestamp = l.Timestamp
         }).ToList();
+    }
+
+    // --- Active Orders Management ---
+    public async Task<List<OrderDto>> GetActiveOrdersAsync()
+    {
+        using var context = _dbContextFactory();
+        var orders = await context.Orders
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+            .Where(o => o.Status != OrderStatus.Paid && o.Status != OrderStatus.Cancelled && !o.IsPaid)
+            .OrderByDescending(o => o.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return orders.Select(o => new OrderDto
+        {
+            Id = o.Id,
+            CreatedAt = o.CreatedAt,
+            Status = o.Status,
+            TotalAmount = o.TotalAmount,
+            CashierNote = o.CashierNote,
+            WaiterId = o.WaiterId,
+            WaiterName = o.WaiterName,
+            IsPaid = o.IsPaid,
+            Items = o.OrderItems.Select(oi => new OrderItemDto
+            {
+                MenuItemId = oi.MenuItemId,
+                MenuItemName = oi.MenuItem?.Name ?? "Item",
+                Quantity = oi.Quantity,
+                UnitPrice = oi.UnitPriceAtSale
+            }).ToList()
+        }).ToList();
+    }
+
+    public async Task MarkOrderPaidAsync(int orderId)
+    {
+        using var context = _dbContextFactory();
+        var order = await context.Orders.FindAsync(orderId);
+        if (order != null)
+        {
+            order.Status = OrderStatus.Paid;
+            order.IsPaid = true;
+            await context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<OrderDto?> RemoveOrderItemAsync(int orderId, int menuItemId)
+    {
+        using var context = _dbContextFactory();
+        var order = await context.Orders
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.MenuItem)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order == null) return null;
+
+        var targetItem = order.OrderItems.FirstOrDefault(oi => oi.MenuItemId == menuItemId);
+        if (targetItem != null)
+        {
+            context.OrderItems.Remove(targetItem);
+            order.OrderItems.Remove(targetItem);
+
+            if (!order.OrderItems.Any())
+            {
+                order.Status = OrderStatus.Cancelled;
+                await context.SaveChangesAsync();
+                return null;
+            }
+
+            order.TotalAmount = order.OrderItems.Sum(oi => oi.Quantity * oi.UnitPriceAtSale);
+            await context.SaveChangesAsync();
+        }
+
+        return new OrderDto
+        {
+            Id = order.Id,
+            CreatedAt = order.CreatedAt,
+            TotalAmount = order.TotalAmount,
+            Status = order.Status,
+            CashierNote = order.CashierNote,
+            WaiterId = order.WaiterId,
+            WaiterName = order.WaiterName,
+            IsPaid = order.IsPaid,
+            Items = order.OrderItems.Select(oi => new OrderItemDto
+            {
+                MenuItemId = oi.MenuItemId,
+                MenuItemName = oi.MenuItem?.Name ?? "Item",
+                Quantity = oi.Quantity,
+                UnitPrice = oi.UnitPriceAtSale
+            }).ToList()
+        };
+    }
+
+    public async Task CancelOrderAsync(int orderId)
+    {
+        using var context = _dbContextFactory();
+        var order = await context.Orders.FindAsync(orderId);
+        if (order != null)
+        {
+            order.Status = OrderStatus.Cancelled;
+            await context.SaveChangesAsync();
+        }
+    }
+
+    // --- Waiter Management CRUD ---
+    public async Task<List<Waiter>> GetWaitersAsync()
+    {
+        using var context = _dbContextFactory();
+        return await context.Waiters.Where(w => w.IsActive).AsNoTracking().ToListAsync();
+    }
+
+    public async Task AddWaiterAsync(string name)
+    {
+        using var context = _dbContextFactory();
+        var nameTrimmed = name.Trim();
+        var exists = await context.Waiters.AnyAsync(w => w.Name.ToLower() == nameTrimmed.ToLower());
+        if (exists)
+        {
+            throw new InvalidOperationException($"Waiter '{nameTrimmed}' already exists.");
+        }
+        context.Waiters.Add(new Waiter { Name = nameTrimmed, IsActive = true });
+        await context.SaveChangesAsync();
+    }
+
+    public async Task DeleteWaiterAsync(int id)
+    {
+        using var context = _dbContextFactory();
+        var waiter = await context.Waiters.FindAsync(id);
+        if (waiter != null)
+        {
+            waiter.IsActive = false; // Soft delete
+            await context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<List<WaiterSalesReportDto>> GetWaiterSalesLeaderboardAsync()
+    {
+        using var context = _dbContextFactory();
+
+        var waiters = await context.Waiters.Where(w => w.IsActive).AsNoTracking().ToListAsync();
+        var paidOrders = await context.Orders
+            .Where(o => o.Status == OrderStatus.Paid || o.IsPaid)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var salesByWaiterMap = paidOrders
+            .Where(o => !string.IsNullOrWhiteSpace(o.WaiterName))
+            .GroupBy(o => o.WaiterName!)
+            .ToDictionary(
+                g => g.Key,
+                g => (TotalOrders: g.Count(), TotalRevenue: g.Sum(o => o.TotalAmount))
+            );
+
+        var leaderboard = new List<WaiterSalesReportDto>();
+        foreach (var w in waiters)
+        {
+            salesByWaiterMap.TryGetValue(w.Name, out var sales);
+            leaderboard.Add(new WaiterSalesReportDto
+            {
+                WaiterId = w.Id,
+                WaiterName = w.Name,
+                TotalOrders = sales.TotalOrders,
+                TotalRevenue = sales.TotalRevenue
+            });
+        }
+
+        // Rank waiters by revenue descending
+        var sorted = leaderboard.OrderByDescending(x => x.TotalRevenue).ThenByDescending(x => x.TotalOrders).ToList();
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            sorted[i].Rank = i + 1;
+        }
+
+        return sorted;
     }
 
     // --- Category CRUD ---

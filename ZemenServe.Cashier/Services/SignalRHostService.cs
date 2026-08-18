@@ -60,6 +60,16 @@ public class SignalRHostService
         await hubContext.Clients.All.ReceiveOrderStatusChanged(statusChange);
     }
 
+    public async Task BroadcastOrderStatusChangedAsync(int orderId, ZemenServe.Shared.Enums.OrderStatus newStatus)
+    {
+        await BroadcastOrderStatusChangedAsync(new OrderStatusChangeDto
+        {
+            OrderId = orderId,
+            NewStatus = newStatus,
+            UpdatedAt = DateTime.Now
+        });
+    }
+
     public async Task StopAsync()
     {
         if (_host != null)

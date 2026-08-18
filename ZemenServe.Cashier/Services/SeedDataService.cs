@@ -25,6 +25,23 @@ public static class SeedDataService
             );
         ");
 
+        // Ensure waiters table exists
+        await context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS waiters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1
+            );
+        ");
+
+        try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE waiters ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;"); } catch { }
+        try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE waiters ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1;"); } catch { }
+
+        // Ensure orders table columns exist
+        try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE orders ADD COLUMN WaiterId INTEGER NULL;"); } catch { }
+        try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE orders ADD COLUMN WaiterName TEXT NULL;"); } catch { }
+        try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE orders ADD COLUMN IsPaid INTEGER NOT NULL DEFAULT 0;"); } catch { }
+
         // Seed Categories if empty
         if (!await context.Categories.AnyAsync())
         {
@@ -33,6 +50,17 @@ public static class SeedDataService
                 new Category { Name = "Western / Fast Food", IsActive = true },
                 new Category { Name = "Beverages", IsActive = true },
                 new Category { Name = "Desserts & Snacks", IsActive = true }
+            );
+            await context.SaveChangesAsync();
+        }
+
+        // Seed Waiters if empty
+        if (!await context.Waiters.AnyAsync())
+        {
+            context.Waiters.AddRange(
+                new Waiter { Name = "Abebe Kebede", IsActive = true },
+                new Waiter { Name = "Tigist Haile", IsActive = true },
+                new Waiter { Name = "Dawit Yilma", IsActive = true }
             );
             await context.SaveChangesAsync();
         }

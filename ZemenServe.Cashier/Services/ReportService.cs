@@ -35,7 +35,7 @@ public class ReportService
                 .ThenInclude(oi => oi.MenuItem)
                     .ThenInclude(m => m!.Recipes)
                         .ThenInclude(r => r.Ingredient)
-            .Where(o => o.CreatedAt >= startDate && o.CreatedAt < endDate)
+            .Where(o => o.CreatedAt >= startDate && o.CreatedAt < endDate && (o.Status == ZemenServe.Shared.Enums.OrderStatus.Paid || o.IsPaid))
             .AsNoTracking()
             .ToListAsync();
 
@@ -90,6 +90,25 @@ public class ReportService
 
         report.TotalCogs = totalCogs;
         report.ItemsSold = itemSalesMap.Values.OrderByDescending(x => x.TotalRevenue).ToList();
+
+        // Waiter Performance breakdown
+        var waiterGroup = orders
+            .Where(o => !string.IsNullOrWhiteSpace(o.WaiterName))
+            .GroupBy(o => o.WaiterName!)
+            .Select(g => new WaiterSalesReportDto
+            {
+                WaiterName = g.Key,
+                TotalOrders = g.Count(),
+                TotalRevenue = g.Sum(o => o.TotalAmount)
+            })
+            .OrderByDescending(w => w.TotalRevenue)
+            .ToList();
+
+        for (int i = 0; i < waiterGroup.Count; i++)
+        {
+            waiterGroup[i].Rank = i + 1;
+        }
+        report.WaiterSales = waiterGroup;
 
         return report;
     }

@@ -46,6 +46,11 @@ public partial class KitchenQueueViewModel : ObservableObject
                 {
                     ActiveOrders.Add(order);
                 }
+                else
+                {
+                    var index = ActiveOrders.IndexOf(existing);
+                    ActiveOrders[index] = order;
+                }
             });
         };
 
@@ -56,7 +61,7 @@ public partial class KitchenQueueViewModel : ObservableObject
                 var target = ActiveOrders.FirstOrDefault(o => o.Id == change.OrderId);
                 if (target != null)
                 {
-                    if (change.NewStatus == OrderStatus.Served)
+                    if (change.NewStatus == OrderStatus.Paid || change.NewStatus == OrderStatus.Cancelled)
                     {
                         ActiveOrders.Remove(target);
                     }

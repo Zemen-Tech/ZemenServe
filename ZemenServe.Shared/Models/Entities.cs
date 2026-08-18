@@ -45,6 +45,13 @@ public class Recipe
     public double QuantityRequired { get; set; }
 }
 
+public class Waiter
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
 public class Order
 {
     public int Id { get; set; }
@@ -52,6 +59,9 @@ public class Order
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public decimal TotalAmount { get; set; }
     public string? CashierNote { get; set; }
+    public int? WaiterId { get; set; }
+    public string? WaiterName { get; set; }
+    public bool IsPaid { get; set; } = false;
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

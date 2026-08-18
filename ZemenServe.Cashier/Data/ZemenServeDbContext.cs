@@ -12,6 +12,7 @@ public class ZemenServeDbContext : DbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<InventoryLog> InventoryLogs => Set<InventoryLog>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Waiter> Waiters => Set<Waiter>();
 
     public string DbPath { get; }
 
@@ -38,13 +39,24 @@ public class ZemenServeDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // Waiter configuration
+        modelBuilder.Entity<Waiter>(entity =>
+        {
+            entity.ToTable("waiters");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+        });
+
         // Category configuration
         modelBuilder.Entity<Category>(entity =>
         {
             entity.ToTable("categories");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).HasColumnName("name").IsRequired().HasMaxLength(100);
+            entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
         });
 
         // MenuItem configuration

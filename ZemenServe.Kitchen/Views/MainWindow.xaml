@@ -73,8 +73,11 @@
                                     </Border>
                                 </Grid>
 
-                                <TextBlock Grid.Row="1" Text="{Binding CreatedAt, StringFormat='Received: {0:HH:mm:ss}'}" 
-                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,10"/>
+                                <TextBlock Grid.Row="1" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,10">
+                                    <Run Text="{Binding WaiterName, StringFormat='Waiter: {0}'}" FontWeight="Bold" Foreground="White"/>
+                                    <Run Text="  •  "/>
+                                    <Run Text="{Binding CreatedAt, StringFormat='Received: {0:HH:mm:ss}'}"/>
+                                </TextBlock>
 
                                 <!-- Items List -->
                                 <Border Grid.Row="2" Background="#12121D" CornerRadius="8" Padding="10" Margin="0,0,0,10" MinHeight="100">

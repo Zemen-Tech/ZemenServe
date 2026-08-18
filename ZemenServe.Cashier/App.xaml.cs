@@ -48,6 +48,7 @@ public partial class App : Application
             services.AddTransient<DigitalMenuViewModel>();
             services.AddTransient<InventoryViewModel>();
             services.AddTransient<ReportsViewModel>();
+            services.AddTransient<SettingsViewModel>();
 
             // Views
             services.AddSingleton<MainWindow>();
